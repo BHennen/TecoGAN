@@ -8,7 +8,20 @@ runcase == 3    training TecoGAN
 runcase == 4    training FRVSR
 runcase == ...  coming... data preparation and so on...
 '''
-import os, subprocess, sys, datetime, signal, shutil
+import os, subprocess, sys, datetime, signal
+import urllib.request
+import shutil
+import zipfile
+...
+
+def download_into(url, file_name):
+    # Download the file from `url` and save it locally under `file_name`:
+    with urllib.request.urlopen(url) as response, open(file_name, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+
+def unzip(file_name, output_dir):
+    with zipfile.ZipFile(file_name, 'r') as zip_ref:
+        zip_ref.extractall(output_dir)
 
 runcase = int(sys.argv[1])
 print ("Testing test case %d" % runcase)
@@ -39,30 +52,34 @@ def folder_check(path):
     return path
 
 if( runcase == 0 ): # download inference data, trained models
-    # download the trained model
-    if(not os.path.exists("./model/")): os.mkdir("./model/")
-    cmd1 = "wget https://ge.in.tum.de/download/data/TecoGAN/model.zip -O model/model.zip;"
-    cmd1 += "unzip model/model.zip -d model; rm model/model.zip"
-    subprocess.call(cmd1, shell=True)
+    pass
+    # download the trained model (already downloaded)
+    # if(not os.path.exists("./model/")): os.mkdir("./model/")
+    # try:
+    #     download_into("https://ge.in.tum.de/download/data/TecoGAN/model.zip", "./model/model.zip")
+    #     unzip("./model/model.zip", "./model/")
+    #     os.remove("./model/model.zip")
+    # except Exception as e:
+    #     print(e)
     
-    # download some test data
-    cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid3_LR.zip -O LR/vid3.zip;"
-    cmd2 += "unzip LR/vid3.zip -d LR; rm LR/vid3.zip"
-    subprocess.call(cmd2, shell=True)
+    # # download some test data
+    # cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid3_LR.zip -O LR/vid3.zip;"
+    # cmd2 += "unzip LR/vid3.zip -d LR; rm LR/vid3.zip"
+    # subprocess.call(cmd2, shell=True)
     
-    cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_LR.zip -O LR/tos.zip;"
-    cmd2 += "unzip LR/tos.zip -d LR; rm LR/tos.zip"
-    subprocess.call(cmd2, shell=True)
+    # cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_LR.zip -O LR/tos.zip;"
+    # cmd2 += "unzip LR/tos.zip -d LR; rm LR/tos.zip"
+    # subprocess.call(cmd2, shell=True)
     
-    # download the ground-truth data
-    if(not os.path.exists("./HR/")): os.mkdir("./HR/")
-    cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid4_HR.zip -O HR/vid4.zip;"
-    cmd3 += "unzip HR/vid4.zip -d HR; rm HR/vid4.zip"
-    subprocess.call(cmd3, shell=True)
+    # # download the ground-truth data
+    # if(not os.path.exists("./HR/")): os.mkdir("./HR/")
+    # cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid4_HR.zip -O HR/vid4.zip;"
+    # cmd3 += "unzip HR/vid4.zip -d HR; rm HR/vid4.zip"
+    # subprocess.call(cmd3, shell=True)
     
-    cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_HR.zip -O HR/tos.zip;"
-    cmd3 += "unzip HR/tos.zip -d HR; rm HR/tos.zip"
-    subprocess.call(cmd3, shell=True)
+    # cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_HR.zip -O HR/tos.zip;"
+    # cmd3 += "unzip HR/tos.zip -d HR; rm HR/tos.zip"
+    # subprocess.call(cmd3, shell=True)
     
 elif( runcase == 1 ): # inference a trained model
     
