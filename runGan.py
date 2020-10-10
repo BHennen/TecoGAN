@@ -12,11 +12,21 @@ import os, subprocess, sys, datetime, signal
 import urllib.request
 import shutil
 import zipfile
-...
+import ssl
 
-def download_into(url, file_name):
+
+def download_and_extract_unsecure(url, output_dir):
+    print(f"Downloading and extracting from {url} to {output_dir}...", end='')
+    archive_path = os.path.join(output_dir, "unsecurezip.zip")
+    download_unsecure(url, archive_path)
+    unzip(archive_path, output_dir)
+    os.remove(archive_path)
+    print("Done")
+
+def download_unsecure(url, file_name):
     # Download the file from `url` and save it locally under `file_name`:
-    with urllib.request.urlopen(url) as response, open(file_name, 'wb') as out_file:
+    # NOTE: ssl._create_unverified_context() makes it ignore certificate validation (only use on trusted sites). Needed because error:<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:1108)>
+    with urllib.request.urlopen(url, context=ssl._create_unverified_context()) as response, open(file_name, 'wb') as out_file:
         shutil.copyfileobj(response, out_file)
 
 def unzip(file_name, output_dir):
@@ -52,50 +62,33 @@ def folder_check(path):
     return path
 
 if( runcase == 0 ): # download inference data, trained models
-    pass
     # download the trained model (already downloaded)
-    # if(not os.path.exists("./model/")): os.mkdir("./model/")
-    # try:
-    #     download_into("https://ge.in.tum.de/download/data/TecoGAN/model.zip", "./model/model.zip")
-    #     unzip("./model/model.zip", "./model/")
-    #     os.remove("./model/model.zip")
-    # except Exception as e:
-    #     print(e)
-    
-    # # download some test data
-    # cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid3_LR.zip -O LR/vid3.zip;"
-    # cmd2 += "unzip LR/vid3.zip -d LR; rm LR/vid3.zip"
-    # subprocess.call(cmd2, shell=True)
-    
-    # cmd2 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_LR.zip -O LR/tos.zip;"
-    # cmd2 += "unzip LR/tos.zip -d LR; rm LR/tos.zip"
-    # subprocess.call(cmd2, shell=True)
-    
-    # # download the ground-truth data
-    # if(not os.path.exists("./HR/")): os.mkdir("./HR/")
-    # cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/vid4_HR.zip -O HR/vid4.zip;"
-    # cmd3 += "unzip HR/vid4.zip -d HR; rm HR/vid4.zip"
-    # subprocess.call(cmd3, shell=True)
-    
-    # cmd3 = "wget https://ge.in.tum.de/download/data/TecoGAN/tos_HR.zip -O HR/tos.zip;"
-    # cmd3 += "unzip HR/tos.zip -d HR; rm HR/tos.zip"
-    # subprocess.call(cmd3, shell=True)
+    if(not os.path.exists("./model/")):os.mkdir("./model/")
+    try:
+        download_and_extract_unsecure("https://ge.in.tum.de/download/data/TecoGAN/model.zip", "./model/")
+        download_and_extract_unsecure("https://ge.in.tum.de/download/data/TecoGAN/vid3_LR.zip", "./LR/")
+        download_and_extract_unsecure("https://ge.in.tum.de/download/data/TecoGAN/tos_LR.zip", "./LR/")
+        download_and_extract_unsecure("https://ge.in.tum.de/download/data/TecoGAN/vid4_HR.zip", "./HR/")
+        download_and_extract_unsecure("https://ge.in.tum.de/download/data/TecoGAN/tos_HR.zip", "./HR/")
+    except Exception as e:
+        print(e)
     
 elif( runcase == 1 ): # inference a trained model
     
     dirstr = './results/' # the place to save the results
-    testpre = ['calendar'] # the test cases
+    # testpre = ['calendar'] # the test cases
+    testpre = ['frames']
 
     if (not os.path.exists(dirstr)): os.mkdir(dirstr)
-    
+
     # run these test cases one by one:
     for nn in range(len(testpre)):
-        cmd1 = ["python3", "main.py",
+        cmd1 = [sys.executable, "main.py",
             "--cudaID", "0",            # set the cudaID here to use only one GPU
             "--output_dir",  dirstr,    # Set the place to put the results.
             "--summary_dir", os.path.join(dirstr, 'log/'), # Set the place to put the log. 
             "--mode","inference", 
-            "--input_dir_LR", os.path.join("./LR/", testpre[nn]),   # the LR directory
+            "--input_dir_LR", os.path.realpath(os.path.join("./LR/", testpre[nn])),   # the LR directory
             #"--input_dir_HR", os.path.join("./HR/", testpre[nn]),  # the HR directory
             # one of (input_dir_HR,input_dir_LR) should be given
             "--output_pre", testpre[nn], # the subfolder to save current scene, optional
@@ -114,7 +107,7 @@ elif( runcase == 2 ): # calculate all metrics, and save the csv files, should us
 
     tar_list = [(tarstr+_) for _ in testpre]
     out_list = [(dirstr+_) for _ in testpre]
-    cmd1 = ["python3", "metrics.py",
+    cmd1 = [sys.executable, "metrics.py",
         "--output", dirstr+"metric_log/",
         "--results", ",".join(out_list),
         "--targets", ",".join(tar_list),
@@ -156,7 +149,7 @@ elif( runcase == 3 ): # Train TecoGAN
     now_str = datetime.datetime.now().strftime("%m-%d-%H")
     train_dir = folder_check("ex_TecoGAN%s/"%now_str)
     # train TecoGAN, loss = l2 + VGG54 loss + A spatio-temporal Discriminator
-    cmd1 = ["python3", "main.py",
+    cmd1 = [sys.executable, "main.py",
         "--cudaID", "0", # set the cudaID here to use only one GPU
         "--output_dir", train_dir, # Set the place to save the models.
         "--summary_dir", os.path.join(train_dir,"log/"), # Set the place to save the log. 
@@ -264,7 +257,7 @@ elif( runcase == 3 ): # Train TecoGAN
 elif( runcase == 4 ): # Train FRVSR, loss = l2 warp + l2 content
     now_str = datetime.datetime.now().strftime("%m-%d-%H")
     train_dir = folder_check("ex_FRVSR%s/"%now_str)
-    cmd1 = ["python3", "main.py",
+    cmd1 = [sys.executable, "main.py",
         "--cudaID", "0", # set the cudaID here to use only one GPU
         "--output_dir", train_dir, # Set the place to save the models.
         "--summary_dir", os.path.join(train_dir,"log/"), # Set the place to save the log. 
